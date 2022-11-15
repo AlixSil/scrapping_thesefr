@@ -21,8 +21,17 @@ rule scrapping_thesis_pages:
     input:
         csv_file = os.path.join("outputs", outdir_name, "basic_information.csv"),
     output:
-        csv_file_extra = os.path.join("outputs", outdir_name, "extra_information.csv")
+        csv_file_scrapping= os.path.join("outputs", outdir_name, "extra_information.csv")
     threads:
-        4
+        6
     shell:
-        "python rules/scrapping_thesis_pages.py {input.csv_file} {output.csv_file_extra} {threads}"
+        "python rules/scrapping_thesis_pages.py {input.csv_file} {output.csv_file_scrapping} {threads}"
+
+rule cleaning_data:
+    input:
+        csv_basic = os.path.join("outputs", outdir_name, "basic_information.csv"),
+        csv_scrapping = os.path.join("outputs", outdir_name, "extra_information.csv")
+    output :
+        csv_clean = os.path.join("outputs", outdir_name, "data_clean.csv")
+    shell:
+        "blahblahblah"
