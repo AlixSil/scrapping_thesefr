@@ -1,8 +1,10 @@
-import requests
 import pandas as pd
+import sys
 from bs4 import BeautifulSoup
-import datetime
+import requests
 import urllib
+import swifter
+
 
 def findFrenchResume(s : BeautifulSoup) -> str:
     """take the BeautifulSoup of a page and extract the french resume"""
@@ -15,7 +17,7 @@ def findFrenchResume(s : BeautifulSoup) -> str:
     )
 
     if len(resume_french) == 0 :
-        raise Error("No french resume were found")
+        return(None)
     elif len(resume_french) > 1 :
         raise Error("Several french resume were found")
     else :
@@ -32,7 +34,7 @@ def findEnglishResume(s : BeautifulSoup) -> str:
     )
 
     if len(resume_eng) == 0 :
-        raise ValueError("No english resume were found")
+        return(None)
     elif len(resume_eng) > 1 :
         raise ValueError("Several english resume were found")
     else :
@@ -48,7 +50,7 @@ def findFrenchTitle(s : BeautifulSoup) -> str:
     )
 
     if len(title_french) == 0 :
-        raise ValueError("No french title was found")
+        return(None)
     elif len(title_french) > 1 :
         raise ValueError("Several french titles were found")
     else :
@@ -64,8 +66,8 @@ def findEnglishTitle(s : BeautifulSoup) -> str:
     )
 
     if len(title_eng) == 0 :
-        raise ValueError("No english title was found")
-    elif len(title_eng) > 1 :
+        return(None)
+    if len(title_eng) > 1 :
         raise ValueError("Several english titles were found")
     else :
         return (title_eng[0].text.strip())
@@ -112,48 +114,15 @@ def dataFromThesisPage(url : str) -> None:
     dictionnary_of_results["french_title"] = findEnglishTitle(soup)
     dictionnary_of_results["english_keywords"] = findKeywordsEnglish(soup)
     dictionnary_of_results["french_keywords"] = findKeywordsFrench(soup)
+    return dictionnary_of_results
 
-    print(pd.DataFrame(dictionnary_of_results, index = [0]))
-
-
-
-def create_url(date) :
-    """From a date, create the url pointing to a csv of all thesis defended at that date"""
-    url = "https://www.theses.fr/?q=&zone1=titreRAs&val1=&op1=AND&zone2=auteurs&val2=&op2=AND&zone3=etabSoutenances&val3=&op3=AND&zone4=dateSoutenance&val4a={d}%2F{m}%2F{y}&val4b={d}%2F{m}%2F{y}&lng=fr/&type=avancee&checkedfacets=&format=csv"
-    url = url.format(
-        d = date.strftime("%d"),
-        m = date.strftime("%m"),
-        y = date.strftime("%Y"),
-    )
-    return(url)
-
-
-def getDefendedThesisList(start_date, end_date):
-    '''Download all the general informations of all the theses defended between
-     start_date and end_date (end_date excluded)'''
-    current_date = start_date
-    list_of_all_data_frames = []
-
-    while current_date < end_date :
-        print(current_date)
-        a = None
-        a = pd.read_csv(create_url(current_date), sep=";")
-        current_date += datetime.timedelta(days=1)
-        if a.shape[0] !=0 :
-            list_of_all_data_frames.append(a)
-
-    return(pd.concat(list_of_all_data_frames))
-
-def to_apply(row) :
+def extract_thesis_info_from_df_row(row) :
     url = "https://www.theses.fr/{}".format(row["Identifiant de la these"])
-    return(dataFromThesisPage)
+    print(row)
+    return(dataFromThesisPage(url))
 
 if __name__ == "__main__" :
-    s_date = datetime.date(2016, 1, 1)
-    e_date = datetime.date(2016, 2, 1)
-
-
-    all_basic_info = getDefendedThesisList(s_date, e_date)
-    scrapped_info = all_basic_info.apply(result_type)
-
-    dataFromThesisPage("https://www.theses.fr/s140161")
+    all_basic_info = pd.read_csv(sys.argv[1], sep=";")
+    all_basic_info = all_basic_info.reset_index(drop = True)
+    extra_results = all_basic_info.apply(extract_thesis_info_from_df_row, result_type="expand", axis = 1)
+    extra_results.to_csv(sys.argv[2], sep=";", index=False)

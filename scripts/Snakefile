@@ -1,0 +1,28 @@
+
+
+configfile: "config.yaml"
+
+
+outdir_name = "thesis_from_{}_to_{}".format(config["START_DATE"], config["END_DATE"])
+
+rule all:
+    input:
+        csv_file_extra = os.path.join("outputs", outdir_name, "extra_information.csv")
+
+
+rule get_basic_info:
+    output:
+        outDir = directory(os.path.join("outputs", outdir_name)),
+        outFile = os.path.join("outputs", outdir_name, "basic_information.csv"),
+    shell :
+        "python rules/get_basic_info.py {config[START_DATE]} {config[END_DATE]} {output.outFile}"
+
+rule scrapping_thesis_pages:
+    input:
+        csv_file = os.path.join("outputs", outdir_name, "basic_information.csv"),
+    output:
+        csv_file_extra = os.path.join("outputs", outdir_name, "extra_information.csv")
+    threads:
+        4
+    shell:
+        "python rules/scrapping_thesis_pages.py {input.csv_file} {output.csv_file_extra} {threads}"
